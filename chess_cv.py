@@ -6,6 +6,10 @@ import chess.engine
 import os
 from url_normalize import url_normalize
 from PIL import ImageGrab
+import win32gui
+import numpy as np
+import cv2
+import time
 
 piece_names = {
 	'bk': 'k',
@@ -286,7 +290,7 @@ def analyze_position(fen):
 	# Remember to close the engine after use
 	engine.quit()
 
-	print(f"Best move: {info['pv'][0]}")
+	# print(f"Best move: {info['pv'][0]}")
 	if(info["score"].relative.score() != None):
 		print(f"Advantage: {info['score'].white().score() / 100}")
 	else:
@@ -300,26 +304,34 @@ def main():
 		h_row_down = False
 
 	#img = cv2.imread("lichess.png")
-	img = ImageGrab.grabclipboard()
-	# Convert the PIL Image to a numpy array
-	img = np.array(img)
 
-	# Convert the color format from RGB to BGR (which is what OpenCV uses)
-	img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+	while True:
+		# Take a screenshot of the entire screen
+		screenshot = ImageGrab.grab()
+		# Convert the screenshot to a numpy array
+		img = np.array(screenshot)
+		# Convert the color space from RGB to BGR (OpenCV format)
+		img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-	chessboard = find_chessboard(img)
-	horizontal_lines, vertical_lines = find_lines(chessboard)
-	squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-	pieces = predict_board(squares, h_row_down)
-	fen = calculate_fen(pieces, turn)
+		# Convert the PIL Image to a numpy array
+		img = np.array(img)
 
-	print()
-	print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
-	print()
+		# Convert the color format from RGB to BGR (which is what OpenCV uses)
+		img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-	analyze_position(fen)
+		try:
+			chessboard = find_chessboard(img)
+			horizontal_lines, vertical_lines = find_lines(chessboard)
+			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
+			pieces = predict_board(squares, h_row_down)
+			fen = calculate_fen(pieces, turn)
 
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+			# print()
+			# print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
+			# print()
+
+			analyze_position(fen)
+		except:
+			pass
 
 main()
