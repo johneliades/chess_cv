@@ -8,18 +8,18 @@ from url_normalize import url_normalize
 from PIL import ImageGrab
 
 piece_names = {
-    'bk': 'k',
-    'bq': 'q',
-    'br': 'r',
-    'bb': 'b',
-    'bn': 'n',
-    'bp': 'p',
-    'wn': 'N',
-    'wp': 'P',
-    'wk': 'K',
-    'wq': 'Q',
-    'wr': 'R',
-    'wb': 'B'
+	'bk': 'k',
+	'bq': 'q',
+	'br': 'r',
+	'bb': 'b',
+	'bn': 'n',
+	'bp': 'p',
+	'wn': 'N',
+	'wp': 'P',
+	'wk': 'K',
+	'wq': 'Q',
+	'wr': 'R',
+	'wb': 'B'
 }
 
 def find_chessboard(img):
@@ -194,7 +194,7 @@ def pattern_matcher(input_img):
 	else:
 		return input_img, " "
 
-def predict_board(squares, boolean):
+def predict_board(squares, h_row_down):
 	images = []
 	names = []
 	for row in range(8):
@@ -218,7 +218,7 @@ def predict_board(squares, boolean):
 	result = cv2.matchTemplate(last_image, h_chess, cv2.TM_CCOEFF_NORMED)
 	_, val2, _, _ = cv2.minMaxLoc(result)
 
-	if(boolean):
+	if(h_row_down):
 		names.reverse()
 	
 	#if(max(val1, val2)>0.7):
@@ -234,11 +234,11 @@ def predict_board(squares, boolean):
 	# Stack the images horizontally in groups of 8
 	# Stack the horizontal stacks vertically
 	# Display the stacked image
-	horizontal_stacks = [cv2.hconcat(images[i:i+8]) for i in range(0, 64, 8)]
-	vertical_stack = cv2.vconcat(horizontal_stacks)
-	cv2.imshow("Stacked Images", vertical_stack)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+	# horizontal_stacks = [cv2.hconcat(images[i:i+8]) for i in range(0, 64, 8)]
+	# vertical_stack = cv2.vconcat(horizontal_stacks)
+	# cv2.imshow("Stacked Images", vertical_stack)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
 	# print(names)
 
 	return names
@@ -280,19 +280,24 @@ def analyze_position(fen):
 
 	# Set the position for the engine to evaluate
 	board = chess.Board(fen)
-	info = engine.analyse(board, chess.engine.Limit(time=0.1))
+
+	info = engine.analyse(board, chess.engine.Limit(time=1))
 
 	# Remember to close the engine after use
 	engine.quit()
 
-	return info["pv"][0], info["score"].relative.score() / 100
+	print(f"Best move: {info['pv'][0]}")
+	if(info["score"].relative.score() != None):
+		print(f"Advantage: {info['score'].white().score() / 100}")
+	else:
+		print(info['score'].white())
 
 def main():
-	turn = "b"
+	turn = "w"
 	if(turn == "b"):
-		boolean = True
+		h_row_down = True
 	else:
-		boolean = False
+		h_row_down = False
 
 	#img = cv2.imread("lichess.png")
 	img = ImageGrab.grabclipboard()
@@ -305,17 +310,14 @@ def main():
 	chessboard = find_chessboard(img)
 	horizontal_lines, vertical_lines = find_lines(chessboard)
 	squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-	pieces = predict_board(squares, boolean)
+	pieces = predict_board(squares, h_row_down)
 	fen = calculate_fen(pieces, turn)
 
 	print()
 	print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
 	print()
 
-	best_move, advantage = analyze_position(fen)
-
-	print("Best move: ", best_move)
-	print("Advantage: ", advantage)
+	analyze_position(fen)
 
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
