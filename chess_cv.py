@@ -5,6 +5,7 @@ import chess
 import chess.engine
 import os
 from url_normalize import url_normalize
+from PIL import ImageGrab
 
 piece_names = {
     'bk': 'k',
@@ -193,7 +194,7 @@ def pattern_matcher(input_img):
 	else:
 		return input_img, " "
 
-def predict_board(squares):
+def predict_board(squares, boolean):
 	images = []
 	names = []
 	for row in range(8):
@@ -217,8 +218,10 @@ def predict_board(squares):
 	result = cv2.matchTemplate(last_image, h_chess, cv2.TM_CCOEFF_NORMED)
 	_, val2, _, _ = cv2.minMaxLoc(result)
 
-	if(max(val1, val2)>0.7):
-		pass
+	if(boolean):
+		names.reverse()
+	
+	#if(max(val1, val2)>0.7):
 		#names.reverse()
 		#print("Reversed board for fen calculation")
 		#print("lichess: " + str(val1))
@@ -285,14 +288,24 @@ def analyze_position(fen):
 	return info["pv"][0], info["score"].relative.score() / 100
 
 def main():
-	turn = "w"
+	turn = "b"
+	if(turn == "b"):
+		boolean = True
+	else:
+		boolean = False
 
-	img = cv2.imread("lichess.png")
+	#img = cv2.imread("lichess.png")
+	img = ImageGrab.grabclipboard()
+	# Convert the PIL Image to a numpy array
+	img = np.array(img)
+
+	# Convert the color format from RGB to BGR (which is what OpenCV uses)
+	img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
 	chessboard = find_chessboard(img)
 	horizontal_lines, vertical_lines = find_lines(chessboard)
 	squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-	pieces = predict_board(squares)
+	pieces = predict_board(squares, boolean)
 	fen = calculate_fen(pieces, turn)
 
 	print()
