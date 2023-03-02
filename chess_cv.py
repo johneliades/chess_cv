@@ -10,7 +10,7 @@ import win32gui
 import numpy as np
 import cv2
 import time
-import pytesseract
+# import pytesseract
 import sys
 
 piece_names = {
@@ -43,7 +43,7 @@ def find_chessboard(img):
 	# Find the contour with the largest area (assumed to be the chessboard)
 	chessboard_contour = max(contours, key=cv2.contourArea)
 	x, y, w, h = cv2.boundingRect(chessboard_contour)
-	cropped_img = img[y-1:y+h+1, x-1:x+w+1]
+	cropped_img = img[y-2:y+h+2, x-2:x+w+2]
 	
 	# cv2.imshow("Cropped board", cropped_img)
 	# cv2.waitKey(0)
@@ -195,6 +195,12 @@ def pattern_matcher(input_img):
 			best_match_name = piece_names[name]
 			best_match_value = max_val
 
+	# if(best_match is not None):
+	# 	horizontal_stacks = cv2.hconcat([input_img_gray, best_match])
+	# 	cv2.imshow("Stacked Images", horizontal_stacks)
+	# 	cv2.waitKey(0)
+	# 	cv2.destroyAllWindows()
+
 	if(best_match is not None):
 		return best_match, best_match_name
 	else:
@@ -215,9 +221,9 @@ def predict_board(squares, h_row_down):
 
 	# Apply thresholding to convert the image to binary format
 	_, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-	text = pytesseract.image_to_string(thresh, config='--psm 11')
+	# text = pytesseract.image_to_string(thresh, config='--psm 11')
 
-	print(text)
+	# print(text)
 
 	# if('a' in text or '8' in text):
 	# 	h_row_down = True
@@ -339,7 +345,7 @@ def main():
 			time.sleep(1)
 		except KeyboardInterrupt:
 			break
-		except:
-			pass
+		except Exception as e: 
+			print(e)
 
 main()
