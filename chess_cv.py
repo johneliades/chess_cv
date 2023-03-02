@@ -10,6 +10,8 @@ import win32gui
 import numpy as np
 import cv2
 import time
+import pytesseract
+import sys
 
 piece_names = {
 	'bk': 'k',
@@ -41,7 +43,7 @@ def find_chessboard(img):
 	# Find the contour with the largest area (assumed to be the chessboard)
 	chessboard_contour = max(contours, key=cv2.contourArea)
 	x, y, w, h = cv2.boundingRect(chessboard_contour)
-	cropped_img = img[y-2:y+h+2, x-2:x+w+2]
+	cropped_img = img[y-1:y+h+1, x-1:x+w+1]
 	
 	# cv2.imshow("Cropped board", cropped_img)
 	# cv2.waitKey(0)
@@ -208,32 +210,30 @@ def predict_board(squares, h_row_down):
 			images.append(image)
 			names.append(name)
 
-	h_lichess = cv2.imread("./chess_pieces/h_lichess.png")
-	h_lichess = cv2.resize(h_lichess, (5, 6), interpolation = cv2.INTER_AREA)
+	# Convert the image to grayscale
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-	h_chess = cv2.imread("./chess_pieces/h_chess.png")
-	h_chess = cv2.resize(h_chess, (6, 7), interpolation = cv2.INTER_AREA)
+	# Apply thresholding to convert the image to binary format
+	_, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+	text = pytesseract.image_to_string(thresh, config='--psm 11')
 
-	last_image = images[len(images)-1]
+	print(text)
 
-	result = cv2.matchTemplate(last_image, h_lichess, cv2.TM_CCOEFF_NORMED)
-	_, val1, _, _ = cv2.minMaxLoc(result)
+	# if('a' in text or '8' in text):
+	# 	h_row_down = True
+	# 	print("h row down")
+	# elif('h' in text or '1' in text):
+	# 	h_row_down = False
+	# 	print("a row down")
+	# else:
+	# 	print("Couldn't find h_row")
 
-	result = cv2.matchTemplate(last_image, h_chess, cv2.TM_CCOEFF_NORMED)
-	_, val2, _, _ = cv2.minMaxLoc(result)
+	# cv2.imshow("Image", thresh)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
 
 	if(h_row_down):
 		names.reverse()
-	
-	#if(max(val1, val2)>0.7):
-		#names.reverse()
-		#print("Reversed board for fen calculation")
-		#print("lichess: " + str(val1))
-		#print("chess: " + str(val2))
-
-	# cv2.imshow("Image", last_image)
-	# cv2.waitKey(0)
-	# cv2.destroyAllWindows()
 
 	# Stack the images horizontally in groups of 8
 	# Stack the horizontal stacks vertically
@@ -290,20 +290,23 @@ def analyze_position(fen):
 	# Remember to close the engine after use
 	engine.quit()
 
-	# print(f"Best move: {info['pv'][0]}")
+	print(f"{info['pv'][0]}", end="")
 	if(info["score"].relative.score() != None):
-		print(f"Advantage: {info['score'].white().score() / 100}")
+		print(f" ({info['score'].white().score() / 100})")
 	else:
-		print(info['score'].white())
+		print(f"({info['score'].white()})")
+	print()
 
 def main():
-	turn = "w"
+	if(len(sys.argv) < 2):
+		print("Example: python chess_cv.py b")
+		exit()
+
+	turn = sys.argv[1]
+	# h_row_down = sys.argv[2].lower() == 'true'
+	h_row_down = False
 	if(turn == "b"):
 		h_row_down = True
-	else:
-		h_row_down = False
-
-	#img = cv2.imread("lichess.png")
 
 	while True:
 		# Take a screenshot of the entire screen
@@ -319,6 +322,8 @@ def main():
 		# Convert the color format from RGB to BGR (which is what OpenCV uses)
 		img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
+		# img = cv2.imread("lichess.png")
+
 		try:
 			chessboard = find_chessboard(img)
 			horizontal_lines, vertical_lines = find_lines(chessboard)
@@ -326,11 +331,14 @@ def main():
 			pieces = predict_board(squares, h_row_down)
 			fen = calculate_fen(pieces, turn)
 
-			# print()
-			# print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
-			# print()
+			print()
+			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
+			print()
 
 			analyze_position(fen)
+			time.sleep(1)
+		except KeyboardInterrupt:
+			break
 		except:
 			pass
 
