@@ -43,7 +43,7 @@ def find_chessboard(img):
 	# Find the contour with the largest area (assumed to be the chessboard)
 	chessboard_contour = max(contours, key=cv2.contourArea)
 	x, y, w, h = cv2.boundingRect(chessboard_contour)
-	cropped_img = img[y-2:y+h+2, x-2:x+w+2]
+	cropped_img = img[y-1:y+h+1, x-1:x+w+1]
 	
 	# cv2.imshow("Cropped board", cropped_img)
 	# cv2.waitKey(0)
@@ -70,32 +70,27 @@ def find_lines(img):
 		x2 = int(x0 - 1000*(-b))
 		y2 = int(y0 - 1000*(a))
 
-		# check for horizontal lines
-		if abs(np.sin(theta)) > 0.9:
-			horizontal_lines.append((x1, y1, x2, y2, rho))
 		# check for vertical lines
-		elif abs(np.cos(theta)) > 0.9:
+		if abs(np.cos(theta)) > 0.9:
 			vertical_lines.append((x1, y1, x2, y2, rho))
-
+		
 	# sort the lines based on their length
-	horizontal_lines.sort(key=lambda x: abs(x[2] - x[0]))
 	vertical_lines.sort(key=lambda x: abs(x[3] - x[1]))
 
 	# keep only the first 9 lines
-	horizontal_lines = horizontal_lines[:9]
 	vertical_lines = vertical_lines[:9]
-
-	# draw the lines on the image
-	for line in horizontal_lines:
-		x1, y1, x2, y2, rho = line
-		cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
 	
 	for line in vertical_lines:
 		x1, y1, x2, y2, rho = line
 		cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+		cv2.line(img, (y1, x1), (y2, x2), (0, 0, 255), 2)
 
-	horizontal_lines = [line[4] for line in horizontal_lines]
 	vertical_lines = [line[4] for line in vertical_lines]
+
+	# sort the lines by their y-coordinates (for horizontal lines) or x-coordinates (for vertical lines)
+	vertical_lines.sort()
+
+	horizontal_lines = vertical_lines
 
 	# cv2.imshow("Cropped board with lines", img)
 	# cv2.waitKey(0)
@@ -105,10 +100,6 @@ def find_lines(img):
 
 def find_squares(img, horizontal_lines, vertical_lines):
 	squares = np.empty((8,8), dtype=object)
-
-	# sort the lines by their y-coordinates (for horizontal lines) or x-coordinates (for vertical lines)
-	horizontal_lines.sort()
-	vertical_lines.sort()
 
 	for i in range(len(horizontal_lines) - 1):
 		for j in range(len(vertical_lines) - 1):
@@ -345,7 +336,8 @@ def main():
 			time.sleep(1)
 		except KeyboardInterrupt:
 			break
-		except Exception as e: 
-			print(e)
+		except Exception as e:
+			pass 
+			# print(e)
 
 main()
