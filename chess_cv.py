@@ -13,6 +13,7 @@ import time
 # import pytesseract
 import sys
 import pyautogui as pg
+import random
 
 piece_names = {
 	'bk': 'k',
@@ -325,6 +326,19 @@ def analyze_position(fen):
 	
 	return str(info['pv'][0])
 
+def move_and_click(x, y):
+	pg.PAUSE = 0.01
+
+	current_x, current_y = pg.position()
+	num_points = 50
+
+	delta_x = (x - current_x) / (num_points - 1)
+	delta_y = (y - current_y) / (num_points - 1)
+	points = [(current_x + i * delta_x, current_y + i * delta_y) for i in range(num_points)]
+	for point in points:
+		pg.moveTo(int(point[0]), int(point[1]))
+	pg.click()
+
 def main():
 	if(len(sys.argv) < 2):
 		print("Example: python chess_cv.py b")
@@ -370,12 +384,9 @@ def main():
 			from_sq = square_to_coords[row * 8 + column]
 			row, column = notation_to_coordinates(best_move[2:4], h_row_down)
 			to_sq = square_to_coords[row * 8 + column]
-
-			# make move on board
-			pg.moveTo(from_sq)
-			pg.click()
-			pg.moveTo(to_sq)
-			pg.click()
+			
+			move_and_click(from_sq[0], from_sq[1])
+			move_and_click(to_sq[0], to_sq[1])
 
 			time.sleep(5)
 		except KeyboardInterrupt:
