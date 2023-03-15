@@ -12,6 +12,7 @@ import cv2
 import time
 # import pytesseract
 import sys
+import pyautogui as pg
 
 piece_names = {
 	'bk': 'k',
@@ -27,6 +28,8 @@ piece_names = {
 	'wr': 'R',
 	'wb': 'B'
 }
+
+square_to_coords = []
 
 def find_chessboard(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -48,7 +51,33 @@ def find_chessboard(img):
 	# cv2.imshow("Cropped board", cropped_img)
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
-	
+
+	CELL_SIZE = w/8
+	BOARD_LEFT_COORD = x
+	BOARD_TOP_COORD = y
+
+	if(len(square_to_coords)==0):
+		# board top left corner coords
+		x = BOARD_LEFT_COORD
+		y = BOARD_TOP_COORD
+
+		# loop over board rows
+		for row in range(8):
+			# loop over board columns
+			for col in range(8):
+				# init square
+				square = row * 8 + col
+
+				# associate square with square center coordinates
+				square_to_coords.append((int(x + CELL_SIZE / 2), int(y + CELL_SIZE / 2)))
+
+				# increment x coord by cell size
+				x += CELL_SIZE
+
+			# restore x coord, increment y coordinate by cell size
+			x = BOARD_LEFT_COORD
+			y += CELL_SIZE
+
 	return cropped_img
 
 def find_lines(img):
@@ -293,6 +322,8 @@ def analyze_position(fen):
 	else:
 		print(f"({info['score'].white()})")
 	print()
+	
+	return str(info['pv'][0])
 
 def main():
 	if(len(sys.argv) < 2):
@@ -332,8 +363,21 @@ def main():
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
 			print()
 
-			analyze_position(fen)
-			time.sleep(1)
+			best_move = analyze_position(fen)
+
+			# extract source and destination square coordinates
+			row, column = notation_to_coordinates(best_move[0:2], h_row_down)
+			from_sq = square_to_coords[row * 8 + column]
+			row, column = notation_to_coordinates(best_move[2:4], h_row_down)
+			to_sq = square_to_coords[row * 8 + column]
+
+			# make move on board
+			pg.moveTo(from_sq)
+			pg.click()
+			pg.moveTo(to_sq)
+			pg.click()
+
+			time.sleep(5)
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
