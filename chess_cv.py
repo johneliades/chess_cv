@@ -385,10 +385,10 @@ def main():
 			row, column = notation_to_coordinates(best_move[2:4], h_row_down)
 			to_sq = square_to_coords[row * 8 + column]
 			
-			move_and_click(from_sq[0], from_sq[1])
-			move_and_click(to_sq[0], to_sq[1])
+			# move_and_click(from_sq[0], from_sq[1])
+			# move_and_click(to_sq[0], to_sq[1])
 
-			time.sleep(5)
+			time.sleep(1)
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
