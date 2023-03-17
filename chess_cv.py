@@ -30,7 +30,40 @@ piece_names = {
 	'wb': 'B'
 }
 
-square_to_coords = []
+def load_templates():
+	# Load all images in the folder
+	template_images = []
+	template_names = []
+	
+	# Path to the folder containing the images
+	paths = ["./chess_pieces/chess", "./chess_pieces/lichess"]
+	for folder_path in paths:
+		for filename in os.listdir(folder_path):
+			if filename.endswith(".png"):
+				# Define the color to replace transparent pixels with (in this case, white)
+				color = (255, 255, 255)
+
+				# Load the image
+				img = cv2.imread(os.path.join(folder_path, filename), cv2.IMREAD_UNCHANGED)
+
+				# Split the image into color channels
+				b, g, r, a = cv2.split(img)
+
+				# Create a mask for the transparent pixels
+				mask = (a == 0)
+
+				# Replace the transparent pixels with the desired color
+				b[mask] = color[0]
+				g[mask] = color[1]
+				r[mask] = color[2]
+
+				# Merge the color channels back into an image without alpha channel
+				img = cv2.merge((b,g,r))
+
+				template_images.append(img)
+				template_names.append(filename[:-4]) # Remove the '.jpg' extension
+
+	return template_images, template_names
 
 def find_chessboard(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -53,38 +86,40 @@ def find_chessboard(img):
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
 
+	# Finds the center of each square and save it in square_to_coords
+	
+	square_to_coords = []
+
 	CELL_SIZE = w/8
 	BOARD_LEFT_COORD = x
 	BOARD_TOP_COORD = y
 
-	if(len(square_to_coords)==0):
-		# board top left corner coords
+	# board top left corner coords
+	x = BOARD_LEFT_COORD
+	y = BOARD_TOP_COORD
+
+	# loop over board rows
+	for row in range(8):
+		# loop over board columns
+		for col in range(8):
+			# init square
+			square = row * 8 + col
+
+			# associate square with square center coordinates
+			square_to_coords.append((int(x + CELL_SIZE / 2), int(y + CELL_SIZE / 2)))
+
+			# increment x coord by cell size
+			x += CELL_SIZE
+
+		# restore x coord, increment y coordinate by cell size
 		x = BOARD_LEFT_COORD
-		y = BOARD_TOP_COORD
+		y += CELL_SIZE
 
-		# loop over board rows
-		for row in range(8):
-			# loop over board columns
-			for col in range(8):
-				# init square
-				square = row * 8 + col
-
-				# associate square with square center coordinates
-				square_to_coords.append((int(x + CELL_SIZE / 2), int(y + CELL_SIZE / 2)))
-
-				# increment x coord by cell size
-				x += CELL_SIZE
-
-			# restore x coord, increment y coordinate by cell size
-			x = BOARD_LEFT_COORD
-			y += CELL_SIZE
-
-	return cropped_img
+	return cropped_img, square_to_coords
 
 def find_lines(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-
 	lines = cv2.HoughLines(edges, 1, np.pi/180, 300)
 	
 	horizontal_lines = []
@@ -110,6 +145,9 @@ def find_lines(img):
 	# keep only the first 9 lines
 	vertical_lines = vertical_lines[:9]
 	
+	if(len(vertical_lines) != 9):
+		raise ValueError("Didn't find 9 lines")
+
 	for line in vertical_lines:
 		x1, y1, x2, y2, rho = line
 		cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -131,6 +169,8 @@ def find_lines(img):
 def find_squares(img, horizontal_lines, vertical_lines):
 	squares = np.empty((8,8), dtype=object)
 
+	first_size = 0
+
 	for i in range(len(horizontal_lines) - 1):
 		for j in range(len(vertical_lines) - 1):
 			# calculate the coordinates of the top left and bottom right corners of the square
@@ -139,7 +179,13 @@ def find_squares(img, horizontal_lines, vertical_lines):
 
 			# crop the square from the original image
 			square = img[top_left[1]+2:bottom_right[1]-2, top_left[0]+2:bottom_right[0]-2]
-			square = cv2.resize(square, (60, 60), interpolation = cv2.INTER_AREA)
+
+			if(first_size == 0):
+				first_size = square.shape[0]
+
+			# Make width same as height if different
+			square = cv2.resize(square, (first_size, first_size), interpolation=cv2.INTER_AREA)
+
 			squares[i, j] = square
 			# cv2.imwrite(f'pieces\\{i}_{j}.jpg', square)
 
@@ -169,49 +215,24 @@ def notation_to_coordinates(notation, is_black):
 	
 	return row, column
 
-def pattern_matcher(input_img):
-	# Path to the folder containing the images
-	paths = ["./chess_pieces/chess", "./chess_pieces/lichess"]
-
+def pattern_matcher(input_img, templates):
 	gray = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
-
-	# Threshold the grayscale image to create a black and white image
 	_, binary = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
-
-	# Convert the binary image back to RGB
 	input_img_gray = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
 
-	# Load all images in the folder
-	images = []
-	names = []
-	
-	for folder_path in paths:
-		for filename in os.listdir(folder_path):
-			if filename.endswith(".png"):
-				# Load the image
-				img = cv2.imread(os.path.join(folder_path, filename))
-
-				gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-				# Threshold the grayscale image to create a black and white image
-				_, binary = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
-
-				# Convert the binary image back to RGB
-				img = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
-
-				images.append(img)
-				names.append(filename[:-4]) # Remove the '.jpg' extension
-
-	threshold = 0.2
+	confidence = 0.2
 
 	# Loop through each template and match it with the input image
 	best_match = None
 	best_match_name = None
 	best_match_value = 0
-	for template, name in zip(images, names):
+	for template, name in zip(templates[0], templates[1]):
+		# Resize the image to the desired shape
+		template = cv2.resize(template, (input_img.shape[0], input_img.shape[0]), interpolation=cv2.INTER_AREA)
+
 		result = cv2.matchTemplate(input_img_gray, template, cv2.TM_CCOEFF_NORMED)
 		min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-		if max_val > best_match_value and max_val > threshold:
+		if max_val > best_match_value and max_val > confidence:
 			best_match = template
 			best_match_name = piece_names[name]
 			best_match_value = max_val
@@ -227,12 +248,12 @@ def pattern_matcher(input_img):
 	else:
 		return input_img, " "
 
-def predict_board(squares, h_row_down):
+def predict_board(squares, templates, h_row_down):
 	images = []
 	names = []
 	for row in range(8):
 		for column in range(8):
-			image, name = pattern_matcher(squares[row, column])
+			image, name = pattern_matcher(squares[row, column], templates)
 
 			images.append(image)
 			names.append(name)
@@ -350,6 +371,9 @@ def main():
 	if(turn == "b"):
 		h_row_down = True
 
+	template_images, template_names = load_templates()
+	templates = (template_images, template_names)
+
 	while True:
 		# Take a screenshot of the entire screen
 		screenshot = ImageGrab.grab()
@@ -367,10 +391,10 @@ def main():
 		# img = cv2.imread("lichess.png")
 
 		try:
-			chessboard = find_chessboard(img)
+			chessboard, square_to_coords = find_chessboard(img)
 			horizontal_lines, vertical_lines = find_lines(chessboard)
 			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-			pieces = predict_board(squares, h_row_down)
+			pieces = predict_board(squares, templates, h_row_down)
 			fen = calculate_fen(pieces, turn)
 
 			print()
