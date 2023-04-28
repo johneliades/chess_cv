@@ -248,7 +248,7 @@ def pattern_matcher(input_img, templates):
 	else:
 		return input_img, " "
 
-def predict_board(squares, templates, h_row_down):
+def predict_board(squares, templates, black_perspective):
 	images = []
 	names = []
 	for row in range(8):
@@ -268,10 +268,10 @@ def predict_board(squares, templates, h_row_down):
 	# print(text)
 
 	# if('a' in text or '8' in text):
-	# 	h_row_down = True
+	# 	black_perspective = True
 	# 	print("h row down")
 	# elif('h' in text or '1' in text):
-	# 	h_row_down = False
+	# 	black_perspective = False
 	# 	print("a row down")
 	# else:
 	# 	print("Couldn't find h_row")
@@ -280,7 +280,7 @@ def predict_board(squares, templates, h_row_down):
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
 
-	if(h_row_down):
+	if(black_perspective):
 		names.reverse()
 
 	# Stack the images horizontally in groups of 8
@@ -365,11 +365,11 @@ def main():
 		print("Example: python chess_cv.py b")
 		exit()
 
-	turn = sys.argv[1]
-	# h_row_down = sys.argv[2].lower() == 'true'
-	h_row_down = False
-	if(turn == "b"):
-		h_row_down = True
+	player_color = sys.argv[1]
+	# black_perspective = sys.argv[2].lower() == 'true'
+	black_perspective = False
+	if(player_color == "b"):
+		black_perspective = True
 
 	template_images, template_names = load_templates()
 	templates = (template_images, template_names)
@@ -394,8 +394,8 @@ def main():
 			chessboard, square_to_coords = find_chessboard(img)
 			horizontal_lines, vertical_lines = find_lines(chessboard)
 			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-			pieces = predict_board(squares, templates, h_row_down)
-			fen = calculate_fen(pieces, turn)
+			pieces = predict_board(squares, templates, black_perspective)
+			fen = calculate_fen(pieces, player_color)
 
 			print()
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
@@ -404,9 +404,9 @@ def main():
 			best_move = analyze_position(fen)
 
 			# extract source and destination square coordinates
-			row, column = notation_to_coordinates(best_move[0:2], h_row_down)
+			row, column = notation_to_coordinates(best_move[0:2], black_perspective)
 			from_sq = square_to_coords[row * 8 + column]
-			row, column = notation_to_coordinates(best_move[2:4], h_row_down)
+			row, column = notation_to_coordinates(best_move[2:4], black_perspective)
 			to_sq = square_to_coords[row * 8 + column]
 			
 			# move_and_click(from_sq[0], from_sq[1])
