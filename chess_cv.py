@@ -14,56 +14,15 @@ import time
 import sys
 import pyautogui as pg
 import random
+from keras.models import load_model
+from keras.optimizers import Adadelta
 
-piece_names = {
-	'bk': 'k',
-	'bq': 'q',
-	'br': 'r',
-	'bb': 'b',
-	'bn': 'n',
-	'bp': 'p',
-	'wn': 'N',
-	'wp': 'P',
-	'wk': 'K',
-	'wq': 'Q',
-	'wr': 'R',
-	'wb': 'B'
-}
+classes = [' ', 'B', 'K', 'N', 'P', 'Q', 'R', 'b', 'k', 'n', 'p', 'q', 'r']
 
-def load_templates():
-	# Load all images in the folder
-	template_images = []
-	template_names = []
-	
-	# Path to the folder containing the images
-	paths = ["./chess_pieces/chess", "./chess_pieces/lichess"]
-	for folder_path in paths:
-		for filename in os.listdir(folder_path):
-			if filename.endswith(".png"):
-				# Define the color to replace transparent pixels with (in this case, white)
-				color = (255, 255, 255)
-
-				# Load the image
-				img = cv2.imread(os.path.join(folder_path, filename), cv2.IMREAD_UNCHANGED)
-
-				# Split the image into color channels
-				b, g, r, a = cv2.split(img)
-
-				# Create a mask for the transparent pixels
-				mask = (a == 0)
-
-				# Replace the transparent pixels with the desired color
-				b[mask] = color[0]
-				g[mask] = color[1]
-				r[mask] = color[2]
-
-				# Merge the color channels back into an image without alpha channel
-				img = cv2.merge((b,g,r))
-
-				template_images.append(img)
-				template_names.append(filename[:-4]) # Remove the '.jpg' extension
-
-	return template_images, template_names
+model = load_model('model/model.h5')
+model.compile(optimizer=Adadelta(),
+	loss = 'sparse_categorical_crossentropy',
+	metrics = ['sparse_categorical_accuracy'])
 
 def find_chessboard(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -215,85 +174,26 @@ def notation_to_coordinates(notation, is_black):
 	
 	return row, column
 
-def pattern_matcher(input_img, templates):
-	gray = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
-	_, binary = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
-	input_img_gray = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
-
-	confidence = 0.2
-
-	# Loop through each template and match it with the input image
-	best_match = None
-	best_match_name = None
-	best_match_value = 0
-	for template, name in zip(templates[0], templates[1]):
-		# Resize the image to the desired shape
-		template = cv2.resize(template, (input_img.shape[0], input_img.shape[0]), interpolation=cv2.INTER_AREA)
-
-		result = cv2.matchTemplate(input_img_gray, template, cv2.TM_CCOEFF_NORMED)
-		min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-		if max_val > best_match_value and max_val > confidence:
-			best_match = template
-			best_match_name = piece_names[name]
-			best_match_value = max_val
-
-	# if(best_match is not None):
-	# 	horizontal_stacks = cv2.hconcat([input_img_gray, best_match])
-	# 	cv2.imshow("Stacked Images", horizontal_stacks)
-	# 	cv2.waitKey(0)
-	# 	cv2.destroyAllWindows()
-
-	if(best_match is not None):
-		return best_match, best_match_name
-	else:
-		return input_img, " "
-
-def predict_board(squares, templates, black_perspective):
+def predict_board(squares, black_perspective):
 	images = []
-	names = []
 	for row in range(8):
 		for column in range(8):
-			image, name = pattern_matcher(squares[row, column], templates)
+			gray = cv2.cvtColor(squares[row, column], cv2.COLOR_BGR2GRAY)
+			img = cv2.resize(gray, (47,47))
+			img_reshaped = np.reshape(img, [1,47,47,1])
+			images.append(img_reshaped)
 
-			images.append(image)
-			names.append(name)
-
-	# Convert the image to grayscale
-	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-	# Apply thresholding to convert the image to binary format
+	images = np.vstack(images)
+	pred_classes = model.predict(images, batch_size=10, verbose=0)
+	predicted_indices = np.argmax(pred_classes, axis=1)
+	predicted_labels = [classes[i] for i in predicted_indices]
+	prediction_certainty = [pred_classes[i][predicted_indices[i]] for i in range(len(images))]
 	_, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-	# text = pytesseract.image_to_string(thresh, config='--psm 11')
-
-	# print(text)
-
-	# if('a' in text or '8' in text):
-	# 	black_perspective = True
-	# 	print("h row down")
-	# elif('h' in text or '1' in text):
-	# 	black_perspective = False
-	# 	print("a row down")
-	# else:
-	# 	print("Couldn't find h_row")
-
-	# cv2.imshow("Image", thresh)
-	# cv2.waitKey(0)
-	# cv2.destroyAllWindows()
 
 	if(black_perspective):
-		names.reverse()
+		predicted_labels.reverse()
 
-	# Stack the images horizontally in groups of 8
-	# Stack the horizontal stacks vertically
-	# Display the stacked image
-	# horizontal_stacks = [cv2.hconcat(images[i:i+8]) for i in range(0, 64, 8)]
-	# vertical_stack = cv2.vconcat(horizontal_stacks)
-	# cv2.imshow("Stacked Images", vertical_stack)
-	# cv2.waitKey(0)
-	# cv2.destroyAllWindows()
-	# print(names)
-
-	return names
+	return predicted_labels
 
 def calculate_fen(pieces, turn):
 	fen = ""
@@ -333,7 +233,7 @@ def analyze_position(fen):
 	# Set the position for the engine to evaluate
 	board = chess.Board(fen)
 
-	info = engine.analyse(board, chess.engine.Limit(time=1))
+	info = engine.analyse(board, chess.engine.Limit(time=5))
 
 	# Remember to close the engine after use
 	engine.quit()
@@ -360,6 +260,55 @@ def move_and_click(x, y):
 		pg.moveTo(int(point[0]), int(point[1]))
 	pg.click()
 
+def display_board(fen):
+	pieces = {
+		'P': '♙',
+		'N': '♘',
+		'B': '♗',
+		'R': '♖',
+		'Q': '♕',
+		'K': '♔',
+		'p': '♟',
+		'n': '♞',
+		'b': '♝',
+		'r': '♜',
+		'q': '♛',
+		'k': '♚',
+	}
+
+	rows = fen.split()[0].split('/')
+	board = []
+	for row in rows:
+		board_row = []
+		for char in row:
+			if char.isdigit():
+				board_row.extend([''] * int(char))
+			else:
+				board_row.append(pieces[char])
+		board.append(board_row)
+
+	# reverse rows to match conventional chess board orientation
+	# board.reverse()
+
+	# build output string
+	output = '  ┌───┬───┬───┬───┬───┬───┬───┬───┐\n'
+	for i, row in enumerate(board):
+		output += str(8-i) + ' │ '
+		for j, piece in enumerate(row):
+			if piece:
+				output += piece + ' │ '
+			else:
+				output += '  │ '
+		output += '\n'
+		if i < 7:
+			output += '  ├───┼───┼───┼───┼───┼───┼───┼───┤\n'
+	output += '  └───┴───┴───┴───┴───┴───┴───┴───┘\n'
+	output += '    a   b   c   d   e   f   g   h\n'
+
+	print(output)
+
+	return output
+
 def main():
 	if(len(sys.argv) < 2):
 		print("Example: python chess_cv.py b")
@@ -370,9 +319,6 @@ def main():
 	black_perspective = False
 	if(player_color == "b"):
 		black_perspective = True
-
-	template_images, template_names = load_templates()
-	templates = (template_images, template_names)
 
 	while True:
 		# Take a screenshot of the entire screen
@@ -394,8 +340,9 @@ def main():
 			chessboard, square_to_coords = find_chessboard(img)
 			horizontal_lines, vertical_lines = find_lines(chessboard)
 			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
-			pieces = predict_board(squares, templates, black_perspective)
+			pieces = predict_board(squares, black_perspective)
 			fen = calculate_fen(pieces, player_color)
+			display_board(fen)
 
 			print()
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
@@ -412,11 +359,11 @@ def main():
 			# move_and_click(from_sq[0], from_sq[1])
 			# move_and_click(to_sq[0], to_sq[1])
 
-			time.sleep(1)
+			time.sleep(4)
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
-			pass 
+			pass
 			# print(e)
 
 main()
