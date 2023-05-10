@@ -243,7 +243,6 @@ def analyze_position(fen):
 		print(f" ({info['score'].white().score() / 100})")
 	else:
 		print(f"({info['score'].white()})")
-	print()
 	
 	return str(info['pv'][0])
 
@@ -260,7 +259,7 @@ def move_and_click(x, y):
 		pg.moveTo(int(point[0]), int(point[1]))
 	pg.click()
 
-def display_board(fen):
+def display_board(fen, black_perspective):
 	pieces = {
 		'P': '♙',
 		'N': '♘',
@@ -287,27 +286,43 @@ def display_board(fen):
 				board_row.append(pieces[char])
 		board.append(board_row)
 
-	# reverse rows to match conventional chess board orientation
-	# board.reverse()
+	if black_perspective:
+		board = reversed(board)
 
-	# build output string
-	output = '  ┌───┬───┬───┬───┬───┬───┬───┬───┐\n'
+	print()
+
+	# add column letters at the top
+	if not black_perspective:
+		print('    a  b  c  d  e  f  g  h')
+	else:
+		print('    h  g  f  e  d  c  b  a')
 	for i, row in enumerate(board):
-		output += str(8-i) + ' │ '
-		for j, piece in enumerate(row):
-			if piece:
-				output += piece + ' │ '
+		# add row number on left side
+		if not black_perspective:
+			print(' ' + str(8 - i) + ' ', end='')
+		else:
+			print(' ' + str(i + 1) + ' ', end='')
+		for j, piece in enumerate(reversed(row) if black_perspective else row):
+			# determine background color for square
+			if (i + j) % 2 == 0:
+				bg_color = '\x1b[48;5;233m'  # gray
 			else:
-				output += '  │ '
-		output += '\n'
-		if i < 7:
-			output += '  ├───┼───┼───┼───┼───┼───┼───┼───┤\n'
-	output += '  └───┴───┴───┴───┴───┴───┴───┴───┘\n'
-	output += '    a   b   c   d   e   f   g   h\n'
-
-	print(output)
-
-	return output
+				bg_color = '\x1b[40m'  # black
+			# add piece with background color
+			if piece:
+				print(bg_color + ' ' + piece + ' ' + '\x1b[0m', end='')
+			else:
+				print(bg_color + '   ' + '\x1b[0m', end='')
+		# add row number on right side and move to next line
+		if not black_perspective:
+			print(' ' + str(8 - i))
+		else:
+			print(' ' + str(i + 1))
+	# add column letters at the bottom
+	if not black_perspective:
+		print('    a  b  c  d  e  f  g  h')
+	else:
+		print('    h  g  f  e  d  c  b  a')
 
 def main():
 	if(len(sys.argv) < 2):
@@ -342,7 +357,7 @@ def main():
 			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
 			pieces = predict_board(squares, black_perspective)
 			fen = calculate_fen(pieces, player_color)
-			display_board(fen)
+			display_board(fen, black_perspective)
 
 			print()
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
