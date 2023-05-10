@@ -7,6 +7,10 @@ It also creates the FEN(Forsyth-Edwards Notation) and a link to lichess
 online stockfish engine for further analysis with gui. Useful for analyzing
 puzzles found in 2D images or even as a cheating tool on online chess games.
 
+<p align="center">
+  <img src="https://github.com/johneliades/chess_cv/blob/main/preview.gif" alt="animated" />
+</p>
+
 The keras model was trained for image classification using this dataset 
 https://universe.roboflow.com/chess-project/2d-chessboard-and-chess-pieces
 by splitting the chessboards that were labeled for yolo in squares with labels
