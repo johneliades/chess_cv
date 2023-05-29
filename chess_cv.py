@@ -16,6 +16,7 @@ import pyautogui as pg
 import random
 from keras.models import load_model
 from keras.optimizers import Adadelta
+import tkinter as tk
 
 classes = [' ', 'B', 'K', 'N', 'P', 'Q', 'R', 'b', 'k', 'n', 'p', 'q', 'r']
 
@@ -233,7 +234,7 @@ def analyze_position(fen):
 	# Set the position for the engine to evaluate
 	board = chess.Board(fen)
 
-	info = engine.analyse(board, chess.engine.Limit(time=5))
+	info = engine.analyse(board, chess.engine.Limit(time=0.5))
 
 	# Remember to close the engine after use
 	engine.quit()
@@ -335,6 +336,34 @@ def main():
 	if(player_color == "b"):
 		black_perspective = True
 
+	# Create a transparent tkinter window
+	window = tk.Tk()
+	window.overrideredirect(True)
+	window.wait_visibility(window)
+	# window.attributes('-alpha', 0.7)
+	window.lift()
+	window.wm_attributes("-topmost", True)
+
+	# Create a canvas on the window
+	canvas = tk.Canvas(window, width=window.winfo_screenwidth(), height=window.winfo_screenheight(), 
+		highlightthickness=0)
+
+	# Function to handle mouse click events
+	def on_click(event):
+		pass  # Do nothing to disable clicking
+
+	# Bind mouse click event to the canvas and prevent further processing
+	canvas.bind("<Button-1>", on_click)
+	canvas.bind("<Button-2>", on_click)
+	canvas.bind("<Button-3>", on_click)
+
+	canvas.configure(bg='green')
+	canvas.pack()
+	# Make the window click-through
+	window.attributes("-transparentcolor", "green")
+	circle_from = None
+	circle_to = None
+
 	while True:
 		# Take a screenshot of the entire screen
 		screenshot = ImageGrab.grab()
@@ -370,15 +399,39 @@ def main():
 			from_sq = square_to_coords[row * 8 + column]
 			row, column = notation_to_coordinates(best_move[2:4], black_perspective)
 			to_sq = square_to_coords[row * 8 + column]
+
+			if circle_from:
+				canvas.delete(circle_from)  # Remove the previous circle
+			if circle_to:
+				canvas.delete(circle_to)  # Remove the previous circle
+
+			circle_radius = 47
+			circle_x_from, circle_y_from = from_sq[0], from_sq[1]  # Coordinates where you want to draw the circle
+			circle_x_to, circle_y_to = to_sq[0], to_sq[1]  # Coordinates where you want to draw the circle
+
+			circle_from = canvas.create_oval(circle_x_from - circle_radius, circle_y_from - circle_radius,
+				circle_x_from + circle_radius, circle_y_from + circle_radius, width=6, 
+				outline='red', fill='green')
+
+			canvas.coords(circle_from, circle_x_from - circle_radius, circle_y_from - circle_radius,
+				circle_x_from + circle_radius, circle_y_from + circle_radius)
 			
+			circle_to = canvas.create_oval(circle_x_to - circle_radius, circle_y_to - circle_radius,
+				circle_x_to + circle_radius, circle_y_to + circle_radius, width=6, 
+				outline='aqua', fill='green')
+
+			canvas.coords(circle_to, circle_x_to - circle_radius, circle_y_to - circle_radius,
+				circle_x_to + circle_radius, circle_y_to + circle_radius)
+
+			window.update()
+		
 			# move_and_click(from_sq[0], from_sq[1])
 			# move_and_click(to_sq[0], to_sq[1])
 
-			time.sleep(4)
+			# time.sleep(0.5)
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
-			pass
-			# print(e)
+			print(e)
 
 main()
