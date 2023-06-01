@@ -75,14 +75,13 @@ def find_chessboard(img):
 		x = BOARD_LEFT_COORD
 		y += CELL_SIZE
 
-	return cropped_img, square_to_coords
+	return cropped_img, square_to_coords, CELL_SIZE
 
 def find_lines(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	edges = cv2.Canny(gray, 50, 150, apertureSize=3)
 	lines = cv2.HoughLines(edges, 1, np.pi/180, 300)
 	
-	horizontal_lines = []
 	vertical_lines = []
 	for line in lines:
 		rho, theta = line[0]
@@ -118,24 +117,22 @@ def find_lines(img):
 	# sort the lines by their y-coordinates (for horizontal lines) or x-coordinates (for vertical lines)
 	vertical_lines.sort()
 
-	horizontal_lines = vertical_lines
-
 	# cv2.imshow("Cropped board with lines", img)
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
 
-	return horizontal_lines, vertical_lines
+	return vertical_lines
 
-def find_squares(img, horizontal_lines, vertical_lines):
+def find_squares(img, vertical_lines):
 	squares = np.empty((8,8), dtype=object)
 
 	first_size = 0
 
-	for i in range(len(horizontal_lines) - 1):
+	for i in range(len(vertical_lines) - 1):
 		for j in range(len(vertical_lines) - 1):
 			# calculate the coordinates of the top left and bottom right corners of the square
-			top_left = (int(vertical_lines[j]), int(horizontal_lines[i]))
-			bottom_right = (int(vertical_lines[j + 1]), int(horizontal_lines[i + 1]))
+			top_left = (int(vertical_lines[j]), int(vertical_lines[i]))
+			bottom_right = (int(vertical_lines[j + 1]), int(vertical_lines[i + 1]))
 
 			# crop the square from the original image
 			square = img[top_left[1]+2:bottom_right[1]-2, top_left[0]+2:bottom_right[0]-2]
@@ -325,17 +322,7 @@ def display_board(fen, black_perspective):
 	else:
 		print('    h  g  f  e  d  c  b  a')
 
-def main():
-	if(len(sys.argv) < 2):
-		print("Example: python chess_cv.py b")
-		exit()
-
-	player_color = sys.argv[1]
-	# black_perspective = sys.argv[2].lower() == 'true'
-	black_perspective = False
-	if(player_color == "b"):
-		black_perspective = True
-
+def init_window():
 	# Create a transparent tkinter window
 	window = tk.Tk()
 	window.overrideredirect(True)
@@ -361,8 +348,65 @@ def main():
 	canvas.pack()
 	# Make the window click-through
 	window.attributes("-transparentcolor", "green")
-	circle_from = None
-	circle_to = None
+
+	return window, canvas
+
+square_from = None
+square_to = None
+def draw_move(window, canvas, from_sq, to_sq, cell_size):
+	global square_from, square_to
+
+	if square_from:
+		canvas.delete(square_from)  # Remove the previous circle
+	if square_to:
+		canvas.delete(square_to)  # Remove the previous circle
+
+	square_x_from, square_y_from = from_sq[0], from_sq[1]  # Coordinates where you want to draw the circle
+	square_x_to, square_y_to = to_sq[0], to_sq[1]  # Coordinates where you want to draw the circle
+
+	# Define the side length of the square
+	square_side = cell_size//2
+
+	# Draw the square for the 'circle_from'
+	square_from = canvas.create_rectangle(
+		square_x_from - square_side, square_y_from - square_side,
+		square_x_from + square_side, square_y_from + square_side,
+		width=2, outline='red', fill='green'
+	)
+
+	canvas.coords(square_from,
+		square_x_from - square_side, square_y_from - square_side,
+		square_x_from + square_side, square_y_from + square_side
+	)
+
+	# Draw the square for the 'circle_to'
+	square_to = canvas.create_rectangle(
+		square_x_to - square_side, square_y_to - square_side,
+		square_x_to + square_side, square_y_to + square_side,
+		width=2, outline='aqua', fill='green'
+	)
+
+	canvas.coords(square_to,
+		square_x_to - square_side, square_y_to - square_side,
+		square_x_to + square_side, square_y_to + square_side
+	)
+
+	window.update()
+
+	return window
+
+def main():
+	if(len(sys.argv) < 2):
+		print("Example: python chess_cv.py b")
+		exit()
+
+	player_color = sys.argv[1]
+	# black_perspective = sys.argv[2].lower() == 'true'
+	black_perspective = False
+	if(player_color == "b"):
+		black_perspective = True
+
+	window, canvas = init_window()
 
 	while True:
 		# Take a screenshot of the entire screen
@@ -381,9 +425,9 @@ def main():
 		# img = cv2.imread("lichess.png")
 
 		try:
-			chessboard, square_to_coords = find_chessboard(img)
-			horizontal_lines, vertical_lines = find_lines(chessboard)
-			squares = find_squares(chessboard, horizontal_lines, vertical_lines)
+			chessboard, square_to_coords, cell_size = find_chessboard(img)
+			vertical_lines = find_lines(chessboard)
+			squares = find_squares(chessboard, vertical_lines)
 			pieces = predict_board(squares, black_perspective)
 			fen = calculate_fen(pieces, player_color)
 			display_board(fen, black_perspective)
@@ -400,30 +444,7 @@ def main():
 			row, column = notation_to_coordinates(best_move[2:4], black_perspective)
 			to_sq = square_to_coords[row * 8 + column]
 
-			if circle_from:
-				canvas.delete(circle_from)  # Remove the previous circle
-			if circle_to:
-				canvas.delete(circle_to)  # Remove the previous circle
-
-			circle_radius = 47
-			circle_x_from, circle_y_from = from_sq[0], from_sq[1]  # Coordinates where you want to draw the circle
-			circle_x_to, circle_y_to = to_sq[0], to_sq[1]  # Coordinates where you want to draw the circle
-
-			circle_from = canvas.create_oval(circle_x_from - circle_radius, circle_y_from - circle_radius,
-				circle_x_from + circle_radius, circle_y_from + circle_radius, width=6, 
-				outline='red', fill='green')
-
-			canvas.coords(circle_from, circle_x_from - circle_radius, circle_y_from - circle_radius,
-				circle_x_from + circle_radius, circle_y_from + circle_radius)
-			
-			circle_to = canvas.create_oval(circle_x_to - circle_radius, circle_y_to - circle_radius,
-				circle_x_to + circle_radius, circle_y_to + circle_radius, width=6, 
-				outline='aqua', fill='green')
-
-			canvas.coords(circle_to, circle_x_to - circle_radius, circle_y_to - circle_radius,
-				circle_x_to + circle_radius, circle_y_to + circle_radius)
-
-			window.update()
+			draw_move(window, canvas, from_sq, to_sq, cell_size)
 		
 			# move_and_click(from_sq[0], from_sq[1])
 			# move_and_click(to_sq[0], to_sq[1])
@@ -432,6 +453,7 @@ def main():
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
+			window.update()
 			print(e)
 
 main()
