@@ -344,34 +344,27 @@ def init_window():
 	canvas.bind("<Button-2>", on_click)
 	canvas.bind("<Button-3>", on_click)
 
-	canvas.configure(bg='green')
+	canvas.configure(bg='blue')
 	canvas.pack()
 	# Make the window click-through
-	window.attributes("-transparentcolor", "green")
+	window.attributes("-transparentcolor", "blue")
 
 	return window, canvas
 
-square_from = None
-square_to = None
 def draw_move(window, canvas, from_sq, to_sq, cell_size):
-	global square_from, square_to
-
-	if square_from:
-		canvas.delete(square_from)  # Remove the previous circle
-	if square_to:
-		canvas.delete(square_to)  # Remove the previous circle
-
+	canvas.delete('all')
+	
 	square_x_from, square_y_from = from_sq[0], from_sq[1]  # Coordinates where you want to draw the circle
 	square_x_to, square_y_to = to_sq[0], to_sq[1]  # Coordinates where you want to draw the circle
 
 	# Define the side length of the square
-	square_side = cell_size//2
+	square_side = cell_size//2-2
 
 	# Draw the square for the 'circle_from'
 	square_from = canvas.create_rectangle(
 		square_x_from - square_side, square_y_from - square_side,
 		square_x_from + square_side, square_y_from + square_side,
-		width=2, outline='red', fill='green'
+		width=5, outline='orange red', fill='blue'
 	)
 
 	canvas.coords(square_from,
@@ -383,7 +376,7 @@ def draw_move(window, canvas, from_sq, to_sq, cell_size):
 	square_to = canvas.create_rectangle(
 		square_x_to - square_side, square_y_to - square_side,
 		square_x_to + square_side, square_y_to + square_side,
-		width=2, outline='aqua', fill='green'
+		width=5, outline='lime green', fill='blue'
 	)
 
 	canvas.coords(square_to,
@@ -392,8 +385,6 @@ def draw_move(window, canvas, from_sq, to_sq, cell_size):
 	)
 
 	window.update()
-
-	return window
 
 def main():
 	if(len(sys.argv) < 2):
@@ -453,6 +444,7 @@ def main():
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
+			canvas.delete('all')
 			window.update()
 			print(e)
 
