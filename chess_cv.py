@@ -437,8 +437,27 @@ def main():
 
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
 		
-			# move_and_click(from_sq[0], from_sq[1])
-			# move_and_click(to_sq[0], to_sq[1])
+			move_and_click(from_sq[0], from_sq[1])
+			move_and_click(to_sq[0], to_sq[1])
+
+			# Handle promotion logic as it requires a second click
+			best_move = str(best_move)
+			if len(best_move) == 5 and best_move[4] in ('q', 'r', 'b', 'n'):
+				if(best_move[4] == 'q'):
+					pg.click()
+				elif(best_move[4] == 'n'):
+					to_sq = square_to_coords[(row+1) * 8 + column]
+					move_and_click(to_sq[0], to_sq[1])
+				elif(best_move[4] == 'r'):
+					to_sq = square_to_coords[(row+2) * 8 + column]
+					move_and_click(to_sq[0], to_sq[1])
+				elif(best_move[4] == 'b'):
+					to_sq = square_to_coords[(row+3) * 8 + column]
+					move_and_click(to_sq[0], to_sq[1])
+
+				# Check if the move is a promotion
+				promotion_piece = best_move[4].upper()
+				print(f"Promotion: {promotion_piece}")
 
 			# time.sleep(0.5)
 		except KeyboardInterrupt:
