@@ -446,14 +446,26 @@ def main():
 				if(best_move[4] == 'q'):
 					pg.click()
 				elif(best_move[4] == 'n'):
-					to_sq = square_to_coords[(row+1) * 8 + column]
-					move_and_click(to_sq[0], to_sq[1])
+					if(row == 0):
+						to_sq = square_to_coords[(row+1) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
+					else:
+						to_sq = square_to_coords[(row-1) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
 				elif(best_move[4] == 'r'):
-					to_sq = square_to_coords[(row+2) * 8 + column]
-					move_and_click(to_sq[0], to_sq[1])
+					if(row == 0):
+						to_sq = square_to_coords[(row+2) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
+					else:
+						to_sq = square_to_coords[(row-2) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
 				elif(best_move[4] == 'b'):
-					to_sq = square_to_coords[(row+3) * 8 + column]
-					move_and_click(to_sq[0], to_sq[1])
+					if(row == 0):
+						to_sq = square_to_coords[(row+3) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
+					else:
+						to_sq = square_to_coords[(row-3) * 8 + column]
+						move_and_click(to_sq[0], to_sq[1])
 
 				# Check if the move is a promotion
 				promotion_piece = best_move[4].upper()
