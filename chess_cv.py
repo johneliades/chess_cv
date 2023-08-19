@@ -224,14 +224,14 @@ def calculate_fen(pieces, turn):
 
 	return fen
 
-def analyze_position(fen):
+def analyze_position(fen, analysis_time):
 	# Create an instance of the Stockfish engine
 	engine = chess.engine.SimpleEngine.popen_uci(".\\stockfish.exe")
 
 	# Set the position for the engine to evaluate
 	board = chess.Board(fen)
 
-	info = engine.analyse(board, chess.engine.Limit(time=0.5))
+	info = engine.analyse(board, chess.engine.Limit(time=analysis_time))
 
 	# Remember to close the engine after use
 	engine.quit()
@@ -396,6 +396,10 @@ def main():
 	black_perspective = False
 	if(player_color == "b"):
 		black_perspective = True
+	
+	mouse_active = False
+	move_delay = 0
+	analysis_time = 0.5
 
 	window, canvas = init_window()
 
@@ -427,7 +431,7 @@ def main():
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
 			print()
 
-			best_move = analyze_position(fen)
+			best_move = analyze_position(fen, analysis_time)
 
 			# extract source and destination square coordinates
 			row, column = notation_to_coordinates(best_move[0:2], black_perspective)
@@ -437,41 +441,37 @@ def main():
 
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
 		
-			move_and_click(from_sq[0], from_sq[1])
-			move_and_click(to_sq[0], to_sq[1])
+			if(mouse_active):
+				move_and_click(from_sq[0], from_sq[1])
+				move_and_click(to_sq[0], to_sq[1])
 
-			# Handle promotion logic as it requires a second click
-			best_move = str(best_move)
-			if len(best_move) == 5 and best_move[4] in ('q', 'r', 'b', 'n'):
-				if(best_move[4] == 'q'):
-					pg.click()
-				elif(best_move[4] == 'n'):
-					if(row == 0):
-						to_sq = square_to_coords[(row+1) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-					else:
-						to_sq = square_to_coords[(row-1) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-				elif(best_move[4] == 'r'):
-					if(row == 0):
-						to_sq = square_to_coords[(row+2) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-					else:
-						to_sq = square_to_coords[(row-2) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-				elif(best_move[4] == 'b'):
-					if(row == 0):
-						to_sq = square_to_coords[(row+3) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-					else:
-						to_sq = square_to_coords[(row-3) * 8 + column]
-						move_and_click(to_sq[0], to_sq[1])
-
-				# Check if the move is a promotion
-				promotion_piece = best_move[4].upper()
-				print(f"Promotion: {promotion_piece}")
-
-			# time.sleep(0.5)
+				# Handle promotion logic as it requires a second click
+				best_move = str(best_move)
+				if len(best_move) == 5 and best_move[4] in ('q', 'r', 'b', 'n'):
+					if(best_move[4] == 'q'):
+						pg.click()
+					elif(best_move[4] == 'n'):
+						if(row == 0):
+							to_sq = square_to_coords[(row+1) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+						else:
+							to_sq = square_to_coords[(row-1) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+					elif(best_move[4] == 'r'):
+						if(row == 0):
+							to_sq = square_to_coords[(row+2) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+						else:
+							to_sq = square_to_coords[(row-2) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+					elif(best_move[4] == 'b'):
+						if(row == 0):
+							to_sq = square_to_coords[(row+3) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+						else:
+							to_sq = square_to_coords[(row-3) * 8 + column]
+							move_and_click(to_sq[0], to_sq[1])
+				time.sleep(move_delay)
 		except KeyboardInterrupt:
 			break
 		except Exception as e:
