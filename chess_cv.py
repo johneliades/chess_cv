@@ -235,14 +235,8 @@ def analyze_position(fen, analysis_time):
 
 	# Remember to close the engine after use
 	engine.quit()
-
-	print(f"{info['pv'][0]}", end="")
-	if(info["score"].relative.score() != None):
-		print(f" ({info['score'].white().score() / 100})")
-	else:
-		print(f"({info['score'].white()})")
 	
-	return str(info['pv'][0])
+	return str(info['pv'][0]), info['score']
 
 def move_and_click(x, y):
 	pg.PAUSE = 0.01
@@ -399,7 +393,7 @@ def main():
 	
 	mouse_active = False
 	move_delay = 0
-	analysis_time = 0.5
+	analysis_time = 0.3
 
 	window, canvas = init_window()
 
@@ -431,7 +425,12 @@ def main():
 			print("link: " + url_normalize("https://lichess.org/analysis/fromPosition/" + fen))
 			print()
 
-			best_move = analyze_position(fen, analysis_time)
+			best_move, score = analyze_position(fen, analysis_time)
+			print(f"{best_move}", end="")
+			if(score.relative.score() != None):
+				print(f" ({score.white().score() / 100})")
+			else:
+				print(f"({score.white()})")
 
 			# extract source and destination square coordinates
 			row, column = notation_to_coordinates(best_move[0:2], black_perspective)
@@ -440,7 +439,19 @@ def main():
 			to_sq = square_to_coords[row * 8 + column]
 
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
-		
+
+			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
+			y = square_to_coords[4][1] - 75
+
+			if(score.relative.score() != None):
+				message = str(score.white().score() / 100)
+			else:
+				message = str(score.white())
+
+			text_item = canvas.create_text(x, y, 
+				text=message, fill="white", font=("Helvetica", 30))
+			window.update()
+
 			if(mouse_active):
 				move_and_click(from_sq[0], from_sq[1])
 				move_and_click(to_sq[0], to_sq[1])
