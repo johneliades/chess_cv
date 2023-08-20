@@ -85,6 +85,20 @@ def find_lines(img):
 	vertical_lines = []
 	for line in lines:
 		rho, theta = line[0]
+
+		# check for vertical lines
+		if (89 * np.pi / 180) < theta < (91 * np.pi / 180):
+			vertical_lines.append((rho, theta))
+
+	# keep only the first 9 lines
+	vertical_lines = vertical_lines[:9]
+	
+	if(len(vertical_lines) != 9):
+		raise ValueError("Didn't find 9 lines")
+
+	for line in vertical_lines:
+		rho, theta = line
+		
 		a = np.cos(theta)
 		b = np.sin(theta)
 		x0 = a*rho
@@ -94,25 +108,10 @@ def find_lines(img):
 		x2 = int(x0 - 1000*(-b))
 		y2 = int(y0 - 1000*(a))
 
-		# check for vertical lines
-		if abs(np.cos(theta)) > 0.9:
-			vertical_lines.append((x1, y1, x2, y2, rho))
-		
-	# sort the lines based on their length
-	vertical_lines.sort(key=lambda x: abs(x[3] - x[1]))
-
-	# keep only the first 9 lines
-	vertical_lines = vertical_lines[:9]
-	
-	if(len(vertical_lines) != 9):
-		raise ValueError("Didn't find 9 lines")
-
-	for line in vertical_lines:
-		x1, y1, x2, y2, rho = line
 		cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 		cv2.line(img, (y1, x1), (y2, x2), (0, 0, 255), 2)
 
-	vertical_lines = [line[4] for line in vertical_lines]
+	vertical_lines = [line[0] for line in vertical_lines]
 
 	# sort the lines by their y-coordinates (for horizontal lines) or x-coordinates (for vertical lines)
 	vertical_lines.sort()
@@ -441,7 +440,7 @@ def main():
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
 
 			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
-			y = square_to_coords[4][1] - 75
+			y = square_to_coords[4][1] - 3*cell_size/4
 
 			if(score.relative.score() != None):
 				message = str(score.white().score() / 100)
@@ -449,7 +448,7 @@ def main():
 				message = str(score.white())
 
 			text_item = canvas.create_text(x, y, 
-				text=message, fill="white", font=("Helvetica", 30))
+				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
 			window.update()
 
 			if(mouse_active):
