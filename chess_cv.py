@@ -17,6 +17,7 @@ import random
 from keras.models import load_model
 from keras.optimizers import Adadelta
 import tkinter as tk
+import traceback
 
 classes = [' ', 'B', 'K', 'N', 'P', 'Q', 'R', 'b', 'k', 'n', 'p', 'q', 'r']
 
@@ -34,11 +35,38 @@ def find_chessboard(img):
 	# Find the contours in the thresholded image
 	contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	if len(contours) == 0:
-		print("No chessboard contour found.")
-		exit()
+		raise ValueError("No contours found")
 
-	# Find the contour with the largest area (assumed to be the chessboard)
-	chessboard_contour = max(contours, key=cv2.contourArea)
+	# Create a list to store square contours
+	square_contours = []
+
+	# Iterate through the contours and filter out squares by using the approximation
+	# of each contour
+	for contour in contours:
+		epsilon = 0.04 * cv2.arcLength(contour, True)
+		approx = cv2.approxPolyDP(contour, epsilon, True)
+		if len(approx) == 4:
+			x, y, w, h = cv2.boundingRect(contour)
+			aspect_ratio = float(w) / h
+			if 0.95 <= aspect_ratio <= 1.05:
+				square_contours.append(contour)
+
+	# Sort the square contours by area in descending order
+	square_contours.sort(key=cv2.contourArea, reverse=True)
+
+	# Check if there are square contours available
+	if square_contours:
+		chessboard_contour = square_contours[0]
+	else:
+		raise ValueError("No square contours found")
+
+	# image_with_contours = img.copy()
+	# for contour in square_contours:
+	# 	cv2.drawContours(image_with_contours, [contour], -1, (0, 255, 0), 3)
+	# cv2.imshow("Image with Contours", image_with_contours)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+
 	x, y, w, h = cv2.boundingRect(chessboard_contour)
 	cropped_img = img[y-1:y+h+1, x-1:x+w+1]
 	
@@ -81,7 +109,6 @@ def find_lines(img):
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	edges = cv2.Canny(gray, 50, 150, apertureSize=3)
 	lines = cv2.HoughLines(edges, 1, np.pi/180, 300)
-	
 	vertical_lines = []
 	for line in lines:
 		rho, theta = line[0]
@@ -92,9 +119,38 @@ def find_lines(img):
 
 	# keep only the first 9 lines
 	vertical_lines = vertical_lines[:9]
-	
+	vertical_lines.sort()
+
+	tolerance = 4  # You can adjust the tolerance as needed
+	distances = [abs(vertical_lines[i][0] - vertical_lines[i+1][0]) for i in range(len(vertical_lines)-1)]
+
+	distances_approximately_equal = all(abs(d - distances[0]) <= tolerance for d in distances)
+
 	if(len(vertical_lines) != 9):
 		raise ValueError("Didn't find 9 lines")
+
+	if(not distances_approximately_equal):
+		count_dict = {}
+
+		# Iterate through the array and count occurrences
+		for num in distances:
+			if num in count_dict:
+				count_dict[num] += 1
+			else:
+				count_dict[num] = 1
+
+		# Find the most common float(s) and their count
+		max_count = max(count_dict.values())
+		most_common_floats = [num for num, count in count_dict.items() if count == max_count]
+		largest_common_float = max(most_common_floats)
+
+		# Create the vertical lines using the most common distance and hoping
+		copy_lines = vertical_lines
+		vertical_lines = []
+		current_line = 0
+		for line in copy_lines:
+			vertical_lines.append((current_line, line[1]))
+			current_line += largest_common_float
 
 	for line in vertical_lines:
 		rho, theta = line
@@ -487,6 +543,6 @@ def main():
 		except Exception as e:
 			canvas.delete('all')
 			window.update()
-			print(e)
+			traceback.print_exc()
 
 main()
