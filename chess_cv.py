@@ -293,7 +293,12 @@ def analyze_position(fen, analysis_time):
 	
 	return str(info['pv'][0]), info['score']
 
-def move_and_click(x, y):
+def move_and_click(x, y, drag=False):
+	if(drag):
+		duration = 0.5
+		pg.dragTo(x, y, duration=duration, button='left')
+		return
+	
 	pg.PAUSE = 0.01
 
 	current_x, current_y = pg.position()
@@ -446,7 +451,7 @@ def main():
 	if(player_color == "b"):
 		black_perspective = True
 	
-	mouse_active = False
+	mouse_active = True
 	move_delay = 0
 	analysis_time = 0.3
 
