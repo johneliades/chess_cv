@@ -495,16 +495,39 @@ def main():
 
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
 
-			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
-			y = square_to_coords[4][1] - 3*cell_size/4
-
 			if(score.relative.score() != None):
 				message = str(score.white().score() / 100)
 			else:
 				message = str(score.white())
 
+			# top score
+			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
+			y = square_to_coords[4][1] - 3*cell_size/4
+
 			text_item = canvas.create_text(x, y, 
 				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+
+			# bottom score
+			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
+			y = square_to_coords[56][1] + 3*cell_size/4
+
+			text_item = canvas.create_text(x, y, 
+				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+
+			# left score
+			x = square_to_coords[0][0] - cell_size
+			y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
+
+			text_item = canvas.create_text(x, y, 
+				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+
+			# right score
+			x = square_to_coords[7][0] + cell_size
+			y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
+
+			text_item = canvas.create_text(x, y, 
+				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+
 			window.update()
 
 			if(mouse_active):
