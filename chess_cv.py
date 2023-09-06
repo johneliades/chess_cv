@@ -451,7 +451,7 @@ def main():
 	if(player_color == "b"):
 		black_perspective = True
 	
-	mouse_active = True
+	mouse_active = False
 	move_delay = 0
 	analysis_time = 0.3
 
