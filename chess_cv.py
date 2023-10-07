@@ -453,7 +453,8 @@ def main():
 	
 	mouse_active = False
 	move_delay = 0
-	analysis_time = 0.3
+	analysis_time = 0.5
+	drag = False
 
 	window, canvas = init_window()
 
@@ -536,8 +537,12 @@ def main():
 			window.update()
 
 			if(mouse_active):
-				move_and_click(from_sq[0], from_sq[1])
-				move_and_click(to_sq[0], to_sq[1])
+				if(not drag):
+					move_and_click(from_sq[0], from_sq[1])
+				else:
+					pg.moveTo(from_sq[0], from_sq[1])
+
+				move_and_click(to_sq[0], to_sq[1], drag)
 
 				# Handle promotion logic as it requires a second click
 				best_move = str(best_move)
@@ -547,24 +552,24 @@ def main():
 					elif(best_move[4] == 'n'):
 						if(row == 0):
 							to_sq = square_to_coords[(row+1) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 						else:
 							to_sq = square_to_coords[(row-1) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 					elif(best_move[4] == 'r'):
 						if(row == 0):
 							to_sq = square_to_coords[(row+2) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 						else:
 							to_sq = square_to_coords[(row-2) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 					elif(best_move[4] == 'b'):
 						if(row == 0):
 							to_sq = square_to_coords[(row+3) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 						else:
 							to_sq = square_to_coords[(row-3) * 8 + column]
-							move_and_click(to_sq[0], to_sq[1])
+							move_and_click(to_sq[0], to_sq[1], drag)
 				time.sleep(move_delay)
 		except KeyboardInterrupt:
 			break
