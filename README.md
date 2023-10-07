@@ -10,8 +10,13 @@ with a trained chess AI in order to determine its elo ranking on popular
 chess platforms by having it play automatically online. 
 
 <p align="center">
-  <img src="https://github.com/johneliades/chess_cv/blob/main/preview.gif" alt="animated" />
+  <img src="https://github.com/johneliades/chess_cv/blob/main/preview1.gif" alt="animated" />
 </p>
+
+<p align="center">
+  <img src="https://github.com/johneliades/chess_cv/blob/main/preview2.gif" alt="animated" />
+</p>
+
 
 The keras model was trained for image classification using this dataset 
 https://universe.roboflow.com/chess-project/2d-chessboard-and-chess-pieces
