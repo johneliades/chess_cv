@@ -1,6 +1,4 @@
-
+.venv
 stockfish.exe
-Scripts
 model
-Lib
 pyvenv.cfg
