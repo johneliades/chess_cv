@@ -34,8 +34,14 @@ decompressing the zip.
 
 Then install the missing libraries in a virtual environment:
 
+Windows
 ```
 python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt && deactivate
+```
+
+Linux
+```
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && deactivate
 ```
 
 ## Download Stockfish
@@ -48,14 +54,14 @@ stockfish. The engine must be in the same folder named stockfish.exe.
 Then you can run:
 
 ```
-.venv\Scripts\activate
+.venv\Scripts\activate (or "source .venv/bin/activate" for linux)
 python chess_cv.py b
 ```
 
 for black, or
 
 ```
-.venv\Scripts\activate
+.venv\Scripts\activate (or "source .venv/bin/activate" for linux)
 python chess_cv.py w
 ```
 
