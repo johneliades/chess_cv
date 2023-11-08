@@ -281,17 +281,24 @@ def calculate_fen(pieces, turn):
 
 def analyze_position(fen, analysis_time):
 	# Create an instance of the Stockfish engine
-	engine = chess.engine.SimpleEngine.popen_uci(".\\stockfish.exe")
+
+	# engine = chess.engine.SimpleEngine.popen_uci(".\\stockfish.exe")
+	engine = chess.engine.SimpleEngine.popen_uci(".\\engine.exe")
 
 	# Set the position for the engine to evaluate
 	board = chess.Board(fen)
 
-	info = engine.analyse(board, chess.engine.Limit(time=analysis_time))
+	# info = engine.analyse(board, chess.engine.Limit(time=analysis_time))
+
+	result = engine.play(board, chess.engine.Limit())
+	result = result.move
 
 	# Remember to close the engine after use
 	engine.quit()
+
+	# return str(info['pv'][0]), info['score']
 	
-	return str(info['pv'][0]), info['score']
+	return str(result), 5
 
 def move_and_click(x, y, drag=False):
 	if(drag):
@@ -451,8 +458,8 @@ def main():
 	if(player_color == "b"):
 		black_perspective = True
 	
-	mouse_active = False
-	move_delay = 0
+	mouse_active = True
+	move_delay = 5
 	analysis_time = 0.5
 	drag = False
 
@@ -487,11 +494,11 @@ def main():
 			print()
 
 			best_move, score = analyze_position(fen, analysis_time)
-			print(f"{best_move}", end="")
-			if(score.relative.score() != None):
-				print(f" ({score.white().score() / 100})")
-			else:
-				print(f"({score.white()})")
+			# print(f"{best_move}", end="")
+			# if(score.relative.score() != None):
+			# 	print(f" ({score.white().score() / 100})")
+			# else:
+			# 	print(f"({score.white()})")
 
 			# extract source and destination square coordinates
 			row, column = notation_to_coordinates(best_move[0:2], black_perspective)
@@ -501,40 +508,40 @@ def main():
 
 			draw_move(window, canvas, from_sq, to_sq, cell_size)
 
-			if(score.relative.score() != None):
-				message = str(score.white().score() / 100)
-			else:
-				message = str(score.white())
+			# if(score.relative.score() != None):
+			# 	message = str(score.white().score() / 100)
+			# else:
+			# 	message = str(score.white())
 
-			# top score
-			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
-			y = square_to_coords[4][1] - 3*cell_size/4
+			# # top score
+			# x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
+			# y = square_to_coords[4][1] - 3*cell_size/4
 
-			text_item = canvas.create_text(x, y, 
-				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+			# text_item = canvas.create_text(x, y, 
+			# 	text=message, fill="white", font=("Helvetica", int(cell_size/4)))
 
-			# bottom score
-			x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
-			y = square_to_coords[56][1] + 3*cell_size/4
+			# # bottom score
+			# x = (square_to_coords[3][0] + square_to_coords[4][0]) // 2
+			# y = square_to_coords[56][1] + 3*cell_size/4
 
-			text_item = canvas.create_text(x, y, 
-				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+			# text_item = canvas.create_text(x, y, 
+			# 	text=message, fill="white", font=("Helvetica", int(cell_size/4)))
 
-			# left score
-			x = square_to_coords[0][0] - cell_size
-			y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
+			# # left score
+			# x = square_to_coords[0][0] - cell_size
+			# y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
 
-			text_item = canvas.create_text(x, y, 
-				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+			# text_item = canvas.create_text(x, y, 
+			# 	text=message, fill="white", font=("Helvetica", int(cell_size/4)))
 
-			# right score
-			x = square_to_coords[7][0] + cell_size
-			y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
+			# # right score
+			# x = square_to_coords[7][0] + cell_size
+			# y = (square_to_coords[24][1] + square_to_coords[32][1]) // 2
 
-			text_item = canvas.create_text(x, y, 
-				text=message, fill="white", font=("Helvetica", int(cell_size/4)))
+			# text_item = canvas.create_text(x, y, 
+			# 	text=message, fill="white", font=("Helvetica", int(cell_size/4)))
 
-			window.update()
+			# window.update()
 
 			if(mouse_active):
 				if(not drag):
@@ -576,6 +583,6 @@ def main():
 		except Exception as e:
 			canvas.delete('all')
 			window.update()
-			traceback.print_exc()
+			# traceback.print_exc()
 
 main()
