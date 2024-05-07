@@ -46,7 +46,7 @@ python -m venv .venv && source .venv/bin/activate && pip install -r requirements
 
 ## Download Stockfish
 
-Go to this url https://stockfishchess.org/ and downloaded the latest version of
+Go to this url https://stockfishchess.org/ and download the latest version of
 stockfish. The engine must be in the same folder named stockfish.exe. 
 
 ## Run
